@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 
+import { PrismaModule } from '@/database/prisma.module';
 import { TagModule } from '@/tag/tag.module';
 
 @Module({
-  imports: [TagModule],
+  imports: [PrismaModule, TagModule],
   controllers: [],
   providers: [],
 })
