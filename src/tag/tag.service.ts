@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '@/database/prisma.service';
 import { CreateTagDto } from '@/tag/dto/create-tag.dto';
@@ -22,15 +22,31 @@ export class TagService {
     return tags.map((tag) => tag.name);
   }
 
-  findOne(id: string) {
-    return this.prismaService.tags.findUnique({
+  async findOne(id: string) {
+    const tag = await this.prismaService.tags.findUnique({
       where: {
         id,
       },
     });
+
+    if (!tag) {
+      throw new NotFoundException();
+    }
+
+    return tag;
   }
 
-  update(id: string, updateTagDto: UpdateTagDto) {
+  async update(id: string, updateTagDto: UpdateTagDto) {
+    const tag = await this.prismaService.tags.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!tag) {
+      throw new NotFoundException();
+    }
+
     return this.prismaService.tags.update({
       where: {
         id,
@@ -41,7 +57,17 @@ export class TagService {
     });
   }
 
-  remove(id: string) {
+  async remove(id: string) {
+    const tag = await this.prismaService.tags.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!tag) {
+      throw new NotFoundException();
+    }
+
     return this.prismaService.tags.delete({
       where: {
         id,
