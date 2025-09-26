@@ -6,7 +6,8 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 
-import { SignInDto } from '@/auth/dto/sign-in.dto';
+import { LoginDto } from '@/auth/dto/login.dto';
+import { RegisterDto } from '@/auth/dto/register.dto';
 import { PrismaService } from '@/database/prisma.service';
 
 @Injectable()
@@ -16,10 +17,10 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async signIn(signInDto: SignInDto) {
+  async login(loginDto: LoginDto) {
     const user = await this.prismaService.users.findUnique({
       where: {
-        email: signInDto.email,
+        email: loginDto.email,
       },
     });
 
@@ -28,7 +29,7 @@ export class AuthService {
     }
 
     const passwordMatch = await bcrypt.compare(
-      signInDto.password,
+      loginDto.password,
       user.password,
     );
 
@@ -38,8 +39,32 @@ export class AuthService {
 
     const payload = { sub: user.id };
 
+    const token = await this.jwtService.signAsync(payload);
+
     return {
-      token: await this.jwtService.signAsync(payload),
+      token,
+    };
+  }
+
+  async register(registerDto: RegisterDto) {
+    const hashPassword = await bcrypt.hash(registerDto.password, 10);
+
+    const user = await this.prismaService.users.create({
+      data: {
+        email: registerDto.email,
+        password: hashPassword,
+        username: registerDto.username,
+      },
+    });
+
+    const payload = { sub: user.id };
+
+    const token = await this.jwtService.signAsync(payload);
+
+    return {
+      email: user.email,
+      username: user.username,
+      token,
     };
   }
 }
