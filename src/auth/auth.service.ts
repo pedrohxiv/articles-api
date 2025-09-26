@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   UnauthorizedException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -47,6 +48,22 @@ export class AuthService {
   }
 
   async register(registerDto: RegisterDto) {
+    const userByEmail = await this.prismaService.users.findUnique({
+      where: {
+        email: registerDto.email,
+      },
+    });
+
+    const userByUsername = await this.prismaService.users.findUnique({
+      where: {
+        username: registerDto.username,
+      },
+    });
+
+    if (userByEmail || userByUsername) {
+      throw new UnprocessableEntityException();
+    }
+
     const hashPassword = await bcrypt.hash(registerDto.password, 10);
 
     const user = await this.prismaService.users.create({

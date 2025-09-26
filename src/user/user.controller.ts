@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   UseGuards,
+  ValidationPipe,
 } from '@nestjs/common';
 
 import { AuthGuard } from '@/auth/auth.guard';
@@ -34,7 +35,10 @@ export class UserController {
 
   @UseGuards(AuthGuard)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+  update(
+    @Param('id') id: string,
+    @Body(new ValidationPipe()) updateUserDto: UpdateUserDto,
+  ) {
     return this.userService.update(id, updateUserDto);
   }
 

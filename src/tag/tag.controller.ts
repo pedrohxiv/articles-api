@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   UseGuards,
+  ValidationPipe,
 } from '@nestjs/common';
 
 import { AuthGuard } from '@/auth/auth.guard';
@@ -20,7 +21,7 @@ export class TagController {
 
   @UseGuards(AuthGuard)
   @Post()
-  create(@Body() createTagDto: CreateTagDto) {
+  create(@Body(new ValidationPipe()) createTagDto: CreateTagDto) {
     return this.tagService.create(createTagDto);
   }
 
@@ -38,7 +39,10 @@ export class TagController {
 
   @UseGuards(AuthGuard)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateTagDto: UpdateTagDto) {
+  update(
+    @Param('id') id: string,
+    @Body(new ValidationPipe()) updateTagDto: UpdateTagDto,
+  ) {
     return this.tagService.update(id, updateTagDto);
   }
 

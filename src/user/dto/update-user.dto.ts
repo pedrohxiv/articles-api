@@ -1,7 +1,23 @@
+import {
+  IsAlphanumeric,
+  IsEmail,
+  IsOptional,
+  MaxLength,
+} from 'class-validator';
+
 export class UpdateUserDto {
-  email: string;
-  password: string;
-  username: string;
-  bio: string | null;
-  image: string | null;
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @IsAlphanumeric()
+  @MaxLength(20)
+  username?: string;
+
+  @IsOptional()
+  bio?: string;
+
+  @IsOptional()
+  image?: string;
 }

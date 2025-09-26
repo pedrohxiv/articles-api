@@ -69,12 +69,7 @@ export class UserService {
       where: {
         id,
       },
-      data: {
-        email: updateUserDto.email,
-        username: updateUserDto.username,
-        bio: updateUserDto.bio,
-        image: updateUserDto.image,
-      },
+      data: updateUserDto,
       omit: {
         password: true,
       },
