@@ -1,15 +1,42 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 import { CreateArticleDto } from '@/article/dto/create-article.dto';
 import { UpdateArticleDto } from '@/article/dto/update-article.dto';
 import { PrismaService } from '@/database/prisma.service';
+import { generateSlug } from '@/utils/slugify.util';
 
 @Injectable()
 export class ArticleService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  create(createArticleDto: CreateArticleDto) {
-    return 'This action adds a new article';
+  async create(createArticleDto: CreateArticleDto, ownerId: string) {
+    let tagIDs: string[] = [];
+
+    if (createArticleDto.tagList && createArticleDto.tagList.length > 0) {
+      const tags = await this.prismaService.tags.findMany({
+        where: {
+          name: { in: createArticleDto.tagList },
+        },
+      });
+
+      if (tags.length !== createArticleDto.tagList.length) {
+        throw new BadRequestException();
+      }
+
+      tagIDs = tags.map((tag) => tag.id);
+    }
+
+    return this.prismaService.articles.create({
+      data: {
+        slug: generateSlug(createArticleDto.title),
+        title: createArticleDto.title,
+        description: createArticleDto.description,
+        body: createArticleDto.body,
+        favoritesCount: 0,
+        authorId: ownerId,
+        tagIDs,
+      },
+    });
   }
 
   findAll() {
