@@ -10,6 +10,8 @@ import {
 } from '@nestjs/common';
 
 import { AuthGuard } from '@/auth/auth.guard';
+import { CurrentUser } from '@/decorators/current-user.decorator';
+import type { JwtPayload } from '@/types/jwt-payload.type';
 import { UpdateUserDto } from '@/user/dto/update-user.dto';
 import { UserService } from '@/user/user.service';
 
@@ -38,13 +40,14 @@ export class UserController {
   update(
     @Param('id') id: string,
     @Body(new ValidationPipe()) updateUserDto: UpdateUserDto,
+    @CurrentUser() payload: JwtPayload,
   ) {
-    return this.userService.update(id, updateUserDto);
+    return this.userService.update(id, updateUserDto, payload.sub);
   }
 
   @UseGuards(AuthGuard)
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.userService.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() payload: JwtPayload) {
+    return this.userService.remove(id, payload.sub);
   }
 }
