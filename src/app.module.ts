@@ -7,8 +7,6 @@ import { TagModule } from '@/tag/tag.module';
 import { UserModule } from '@/user/user.module';
 
 @Module({
-  imports: [PrismaModule, TagModule, UserModule, AuthModule, ArticleModule],
-  controllers: [],
-  providers: [],
+  imports: [ArticleModule, AuthModule, PrismaModule, TagModule, UserModule],
 })
 export class AppModule {}
