@@ -34,17 +34,17 @@ export class ArticleService {
 
     const slug = generateSlug(createArticleDto.title);
 
-    const article = await this.prismaService.articles.findUnique({
+    const existingArticle = await this.prismaService.articles.findUnique({
       where: {
         slug,
       },
     });
 
-    if (article) {
+    if (existingArticle) {
       throw new ConflictException();
     }
 
-    return this.prismaService.articles.create({
+    const article = await this.prismaService.articles.create({
       data: {
         slug,
         title: createArticleDto.title,
@@ -55,10 +55,29 @@ export class ArticleService {
         tagIDs,
       },
     });
+
+    if (tagIDs.length) {
+      await this.prismaService.tags.updateMany({
+        where: {
+          id: { in: tagIDs },
+        },
+        data: {
+          articleIDs: { push: article.id },
+        },
+      });
+    }
+
+    return article;
   }
 
-  async findAll() {
+  async findAll({ author, tag }: { author?: string; tag?: string }) {
     const articles = await this.prismaService.articles.findMany({
+      where: {
+        AND: [
+          author ? { author: { username: author } } : {},
+          tag ? { tags: { some: { name: tag } } } : {},
+        ],
+      },
       include: {
         author: {
           select: {
@@ -129,7 +148,7 @@ export class ArticleService {
       throw new UnauthorizedException();
     }
 
-    let tagIDs: string[] = [];
+    let newTagIDs: string[] = [];
 
     if (updateArticleDto.tagList && updateArticleDto.tagList.length > 0) {
       const tags = await this.prismaService.tags.findMany({
@@ -142,7 +161,55 @@ export class ArticleService {
         throw new BadRequestException();
       }
 
-      tagIDs = tags.map((tag) => tag.id);
+      newTagIDs = tags.map((tag) => tag.id);
+    }
+
+    const oldTagIDs = article.tagIDs || [];
+
+    const tagsToRemove = oldTagIDs.filter((id) => !newTagIDs.includes(id));
+    const tagsToAdd = newTagIDs.filter((id) => !oldTagIDs.includes(id));
+
+    if (tagsToRemove.length) {
+      await this.prismaService.tags.updateMany({
+        where: { id: { in: tagsToRemove } },
+        data: {
+          articleIDs: {
+            set: [],
+          },
+        },
+      });
+
+      for (const tagId of tagsToRemove) {
+        const tag = await this.prismaService.tags.findUnique({
+          where: { id: tagId },
+        });
+
+        if (tag?.articleIDs?.length) {
+          await this.prismaService.tags.update({
+            where: { id: tagId },
+            data: {
+              articleIDs: tag.articleIDs.filter((aId) => aId !== article.id),
+            },
+          });
+        }
+      }
+    }
+
+    for (const tagId of tagsToAdd) {
+      const tag = await this.prismaService.tags.findUnique({
+        where: { id: tagId },
+      });
+
+      if (tag) {
+        const updatedArticleIDs = tag.articleIDs
+          ? [...tag.articleIDs, article.id]
+          : [article.id];
+
+        await this.prismaService.tags.update({
+          where: { id: tagId },
+          data: { articleIDs: updatedArticleIDs },
+        });
+      }
     }
 
     return this.prismaService.articles.update({
@@ -153,7 +220,7 @@ export class ArticleService {
         title: updateArticleDto.title,
         description: updateArticleDto.description,
         body: updateArticleDto.body,
-        tagIDs,
+        tagIDs: newTagIDs,
       },
     });
   }

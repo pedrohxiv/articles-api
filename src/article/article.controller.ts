@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
@@ -32,8 +33,8 @@ export class ArticleController {
 
   @UseGuards(AuthGuard)
   @Get()
-  findAll() {
-    return this.articleService.findAll();
+  findAll(@Query('author') author?: string, @Query('tag') tag?: string) {
+    return this.articleService.findAll({ author, tag });
   }
 
   @UseGuards(AuthGuard)
