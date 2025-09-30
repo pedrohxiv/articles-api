@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 
 import { CreateArticleDto } from '@/article/dto/create-article.dto';
@@ -109,11 +110,73 @@ export class ArticleService {
     };
   }
 
-  update(id: number, updateArticleDto: UpdateArticleDto) {
-    return `This action updates a #${id} article`;
+  async update(
+    id: string,
+    updateArticleDto: UpdateArticleDto,
+    ownerId: string,
+  ) {
+    const article = await this.prismaService.articles.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!article) {
+      throw new NotFoundException();
+    }
+
+    if (article.authorId !== ownerId) {
+      throw new UnauthorizedException();
+    }
+
+    let tagIDs: string[] = [];
+
+    if (updateArticleDto.tagList && updateArticleDto.tagList.length > 0) {
+      const tags = await this.prismaService.tags.findMany({
+        where: {
+          name: { in: updateArticleDto.tagList },
+        },
+      });
+
+      if (tags.length !== updateArticleDto.tagList.length) {
+        throw new BadRequestException();
+      }
+
+      tagIDs = tags.map((tag) => tag.id);
+    }
+
+    return this.prismaService.articles.update({
+      where: {
+        id,
+      },
+      data: {
+        title: updateArticleDto.title,
+        description: updateArticleDto.description,
+        body: updateArticleDto.body,
+        tagIDs,
+      },
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} article`;
+  async remove(id: string, ownerId: string) {
+    const article = await this.prismaService.articles.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!article) {
+      throw new NotFoundException();
+    }
+
+    if (article.authorId !== ownerId) {
+      throw new UnauthorizedException();
+    }
+
+    return this.prismaService.articles.delete({
+      where: {
+        id,
+      },
+    });
   }
 }

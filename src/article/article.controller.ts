@@ -42,13 +42,19 @@ export class ArticleController {
     return this.articleService.findOne(param);
   }
 
+  @UseGuards(AuthGuard)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateArticleDto: UpdateArticleDto) {
-    return this.articleService.update(+id, updateArticleDto);
+  update(
+    @Param('id') id: string,
+    @Body(new ValidationPipe()) updateArticleDto: UpdateArticleDto,
+    @CurrentUser() payload: JwtPayload,
+  ) {
+    return this.articleService.update(id, updateArticleDto, payload.sub);
   }
 
+  @UseGuards(AuthGuard)
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.articleService.remove(+id);
+  remove(@Param('id') id: string, @CurrentUser() payload: JwtPayload) {
+    return this.articleService.remove(id, payload.sub);
   }
 }
