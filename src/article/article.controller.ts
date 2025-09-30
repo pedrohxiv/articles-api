@@ -30,14 +30,16 @@ export class ArticleController {
     return this.articleService.create(createArticleDto, payload.sub);
   }
 
+  @UseGuards(AuthGuard)
   @Get()
   findAll() {
     return this.articleService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.articleService.findOne(+id);
+  @UseGuards(AuthGuard)
+  @Get(':param')
+  findOne(@Param('param') param: string) {
+    return this.articleService.findOne(param);
   }
 
   @Patch(':id')

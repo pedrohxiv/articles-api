@@ -21,7 +21,7 @@ model Users {
 
 model Articles {
   id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  slug           String
+  slug           String   @unique
   title          String
   description    String
   body           String

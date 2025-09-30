@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 import { CreateArticleDto } from '@/article/dto/create-article.dto';
 import { UpdateArticleDto } from '@/article/dto/update-article.dto';
@@ -26,9 +31,21 @@ export class ArticleService {
       tagIDs = tags.map((tag) => tag.id);
     }
 
+    const slug = generateSlug(createArticleDto.title);
+
+    const article = await this.prismaService.articles.findUnique({
+      where: {
+        slug,
+      },
+    });
+
+    if (article) {
+      throw new ConflictException();
+    }
+
     return this.prismaService.articles.create({
       data: {
-        slug: generateSlug(createArticleDto.title),
+        slug,
         title: createArticleDto.title,
         description: createArticleDto.description,
         body: createArticleDto.body,
@@ -39,12 +56,57 @@ export class ArticleService {
     });
   }
 
-  findAll() {
-    return `This action returns all article`;
+  async findAll() {
+    const articles = await this.prismaService.articles.findMany({
+      include: {
+        author: {
+          select: {
+            username: true,
+            bio: true,
+            image: true,
+          },
+        },
+        tags: true,
+      },
+      omit: {
+        tagIDs: true,
+      },
+    });
+
+    return articles.map((article) => ({
+      ...article,
+      tags: article.tags.map((tag) => tag.name),
+    }));
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} article`;
+  async findOne(param: string) {
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(param);
+
+    const article = await this.prismaService.articles.findUnique({
+      where: isObjectId ? { id: param } : { slug: param },
+      include: {
+        author: {
+          select: {
+            username: true,
+            bio: true,
+            image: true,
+          },
+        },
+        tags: true,
+      },
+      omit: {
+        tagIDs: true,
+      },
+    });
+
+    if (!article) {
+      throw new NotFoundException();
+    }
+
+    return {
+      ...article,
+      tags: article.tags.map((tag) => tag.name),
+    };
   }
 
   update(id: number, updateArticleDto: UpdateArticleDto) {
